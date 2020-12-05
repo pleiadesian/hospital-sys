@@ -5,22 +5,13 @@ import { Link } from "react-router-dom";
 
 const { Content, Sider } = Layout;
 
-// const data = [
-//     'Racing car sprays burning fuel into crowd.',
-//     'Japanese princess to wed commoner.',
-//     'Australian walks 100km after outback crash.',
-//     'Man charged over missing wedding girl.',
-//     'Los Angeles battles huge wildfires.',
-//     "123"
-// ]
-
 const columns_register = [
     {
         title: 'Number',
         dataIndex: 'number',
     },
     {
-        title: 'Admission',
+        title: 'Admission state',
         dataIndex: 'admission',
     },
     {
@@ -68,19 +59,23 @@ class PatientPage extends Component {
         super(props);
     }
 
-    render(){
+    render() {
         return (
         <Layout style={{minHeight: '100vh'}}>
             <Sider>
                 <Menu>
                     <Menu.Item key="1">
-                        <Row justify="center"><Button type="primary">Register</Button></Row>
+                        <Row justify="center"><h1>Patient Page</h1></Row>
                     </Menu.Item>
                     <Menu.Divider style={{margin:20}}/>
                     <Menu.Item key="2">
+                        <Row justify="center"><Button type="primary">Register</Button></Row>
+                    </Menu.Item>
+                    <Menu.Divider style={{margin:20}}/>
+                    <Menu.Item key="3">
                         <Row justify="center"><Link to={'/'}><span>Register Info</span></Link></Row>
                     </Menu.Item>
-                    <Menu.Item key="3">
+                    <Menu.Item key="4">
                         <Row justify="center"><Link to={'/'}><span>Prescription Info</span></Link></Row>
                     </Menu.Item>
                 </Menu>
