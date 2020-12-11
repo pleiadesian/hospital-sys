@@ -1,6 +1,6 @@
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
 import Grid from '@material-ui/core/Grid/index'
-import { Layout, List, Menu, Button, Row, Table } from "antd";
+import { Layout, List, Menu, Button, Row, Table, Modal } from "antd";
 import { Link } from "react-router-dom";
 
 const { Content, Sider } = Layout;
@@ -40,7 +40,7 @@ const data_register = [
         key: '1',
         number: '1',
         admission: 'Not checked',
-        checklist: <Button>checklist</Button>,
+        checklist: <Button disabled={true}>checklist</Button>,
     },
 ];
 
@@ -54,9 +54,56 @@ const data_prescription = [
 ];
 
 class PatientPage extends Component {
-    // eslint-disable-next-line no-useless-constructor
     constructor(props){
         super(props);
+        // TODO: register info and prescription info state
+        this.state = {
+            visible: false,
+        }
+        this.handleregister = this.handleregister.bind(this)
+        this.showModal = this.showModal.bind(this)
+        this.handleOk = this.handleOk.bind(this)
+        this.handleCancel = this.handleCancel.bind(this)
+    }
+
+    componentWillMount() {
+        // TODO: get register info and prescription info
+        // var url="http://202.120.40.8:30741/message/"+this.props.type+"/1";
+        // axios.get(url).then(
+        //     function(response)
+        //     {
+        //         this.setState({messages:response.data});
+        //     }.bind(this)
+        // )
+    }
+
+    handleregister() {
+        // TODO: axios.post register info and flush page
+        this.setState({visible: true})
+    }
+
+    showModal(){
+        this.setState({visible: true})
+    }
+
+    handleOk()
+    {
+        this.setState({visible:false})
+    }
+
+    handleCancel()
+    {
+        this.setState({visible:false})
+    }
+
+    info(text) {
+        Modal.info({
+            title: '123',
+            content: (
+                <Button>{text}</Button>
+            ),
+            onOk() {},
+        })
     }
 
     render() {
@@ -69,7 +116,7 @@ class PatientPage extends Component {
                     </Menu.Item>
                     <Menu.Divider style={{margin:20}}/>
                     <Menu.Item key="2">
-                        <Row justify="center"><Button type="primary">Register</Button></Row>
+                        <Row justify="center"><Button type="primary" onClick={() => this.info("test")}>Register</Button></Row>
                     </Menu.Item>
                     <Menu.Divider style={{margin:20}}/>
                     <Menu.Item key="3">
@@ -87,6 +134,9 @@ class PatientPage extends Component {
                             <Grid container direction={"row"} >
                                 <Grid item xs={2} />
                                 <Grid item xs={8} >
+                                    {/*<Modal title="Information" visible={this.state.visible}*/}
+                                    {/*       onOk={this.handleOk} onCancel={this.handleCancel}*/}
+                                    {/*/>*/}
                                     <br/><br/>
                                     <h1>Register Information</h1>
                                     <Table columns={columns_register} dataSource={data_register} />
