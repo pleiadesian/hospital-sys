@@ -2,6 +2,7 @@ import React, { Component, useState } from 'react';
 import Grid from '@material-ui/core/Grid/index'
 import { Layout, List, Menu, Button, Row, Table, Modal } from "antd";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const { Content, Sider } = Layout;
 
@@ -35,15 +36,6 @@ const columns_prescription = [
     },
 ];
 
-const data_register = [
-    {
-        key: '1',
-        number: '1',
-        admission: 'Not checked',
-        checklist: <Button disabled={true}>checklist</Button>,
-    },
-];
-
 const data_prescription = [
     {
         key: '1',
@@ -53,37 +45,59 @@ const data_prescription = [
     },
 ];
 
+let aid = 0;
+let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Appointment/";
+
 class PatientPage extends Component {
     constructor(props){
         super(props);
         // TODO: register info and prescription info state
         this.state = {
             visible: false,
+            data_register: [],
+            data_prescription: {},
         }
-        this.handleregister = this.handleregister.bind(this)
+        this.handleRegister = this.handleRegister.bind(this)
         this.showModal = this.showModal.bind(this)
         this.handleOk = this.handleOk.bind(this)
         this.handleCancel = this.handleCancel.bind(this)
+        this.getAppointment = this.getAppointment.bind(this)
+    }
+
+    getAppointment() {
+        axios.get(appointment_url)
+            .then(res => {
+                console.log(res.data['Appointment'])
+                let data = res.data['Appointment'].map((item, index) => {
+                    return {
+                        key: index,
+                        number: item['id'],
+                        admission: item['completion'] ? 'Checked' : 'Not checked',
+                        checklist: <Button disabled={!item['completion']} onClick={() => this.showModal(item['content'])}>
+                                        checklist
+                                    </Button>,
+                    };
+                })
+                console.log(data)
+                this.setState({data_register: data})
+            })
     }
 
     componentWillMount() {
-        // TODO: get register info and prescription info
-        // var url="http://202.120.40.8:30741/message/"+this.props.type+"/1";
-        // axios.get(url).then(
-        //     function(response)
-        //     {
-        //         this.setState({messages:response.data});
-        //     }.bind(this)
-        // )
+        this.getAppointment()
     }
 
-    handleregister() {
-        // TODO: axios.post register info and flush page
-        this.setState({visible: true})
-    }
-
-    showModal(){
-        this.setState({visible: true})
+    handleRegister() {
+        let params = {
+            "aid" : aid,
+            "patientid": 1,
+            "patientname": "Ray Williams",
+            "completion": 0,
+            "content": "",
+        }
+        aid += 1
+        axios.post(appointment_url, params)
+        this.getAppointment()
     }
 
     handleOk()
@@ -96,12 +110,10 @@ class PatientPage extends Component {
         this.setState({visible:false})
     }
 
-    info(text) {
+    showModal(text) {
         Modal.info({
-            title: '123',
-            content: (
-                <Button>{text}</Button>
-            ),
+            title: 'Information',
+            content: text,
             onOk() {},
         })
     }
@@ -116,7 +128,7 @@ class PatientPage extends Component {
                     </Menu.Item>
                     <Menu.Divider style={{margin:20}}/>
                     <Menu.Item key="2">
-                        <Row justify="center"><Button type="primary" onClick={() => this.info("test")}>Register</Button></Row>
+                        <Row justify="center"><Button type="primary" onClick={this.handleRegister}>Register</Button></Row>
                     </Menu.Item>
                     <Menu.Divider style={{margin:20}}/>
                     <Menu.Item key="3">
@@ -139,7 +151,7 @@ class PatientPage extends Component {
                                     {/*/>*/}
                                     <br/><br/>
                                     <h1>Register Information</h1>
-                                    <Table columns={columns_register} dataSource={data_register} />
+                                    <Table columns={columns_register} dataSource={this.state.data_register} />
                                     <br/><br/>
                                     <h1>Prescription Information</h1>
                                     <Table columns={columns_prescription} dataSource={data_prescription} />
