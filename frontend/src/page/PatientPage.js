@@ -65,21 +65,23 @@ class PatientPage extends Component {
     }
 
     getAppointment() {
-        axios.get(appointment_url)
-            .then(res => {
-                console.log(res.data['Appointment'])
-                let data = res.data['Appointment'].map((item, index) => {
-                    return {
-                        key: index,
-                        number: item['id'],
-                        admission: item['completion'] ? 'Checked' : 'Not checked',
-                        checklist: <Button disabled={!item['completion']} onClick={() => this.showModal(item['content'])}>
-                                        checklist
-                                    </Button>,
-                    };
-                })
-                console.log(data)
-                this.setState({data_register: data})
+        axios.get(appointment_url).then(res => {
+                if (res.data != null && res.data.size > 0) {
+                    console.log(res.data['Appointment'])
+                    let data = res.data['Appointment'].map((item, index) => {
+                        return {
+                            key: index,
+                            number: item['id'],
+                            admission: item['completion'] ? 'Checked' : 'Not checked',
+                            checklist: <Button disabled={!item['completion']}
+                                               onClick={() => this.showModal(item['content'])}>
+                                checklist
+                            </Button>,
+                        };
+                    })
+                    console.log(data)
+                    this.setState({data_register: data})
+                }
             })
     }
 

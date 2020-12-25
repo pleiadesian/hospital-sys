@@ -55,20 +55,22 @@ class DoctorPage extends Component {
     }
 
     getAppointment() {
-        axios.get(appointment_url)
-            .then(res => {
-                let data = res.data['Appointment'].map((item, index) => {
-                    return {
-                        key: index,
-                        number: item['id'],
-                        name: item['patientname'],
-                        admission: item['completion'] ? 'checked' : 'not checked',
-                        check: <Button disabled={item['completion']} onClick={() => this.showModal(item['id'])}>
+        axios.get(appointment_url).then(res => {
+                if (res.data != null && res.data.size > 0) {
+                    let data = res.data['Appointment'].map((item, index) => {
+                        return {
+                            key: index,
+                            number: item['id'],
+                            name: item['patientname'],
+                            admission: item['completion'] ? 'checked' : 'not checked',
+                            check:
+                                <Button disabled={item['completion']} onClick={() => this.showModal(item['id'])}>
                                     checklist
                                 </Button>,
-                    };
-                })
-                this.setState({data_admission: data})
+                        };
+                    })
+                    this.setState({data_admission: data})
+                }
             })
     }
 
@@ -131,6 +133,7 @@ class DoctorPage extends Component {
             "patientid": 1,
             "medicineid": 0,
             "payed": 0,
+            "prescribed": 0,
         }
         pid += 1
         axios.get(medicine_url + "?Medicine.mid=" + params['medicineid'])

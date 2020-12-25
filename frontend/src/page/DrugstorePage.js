@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Grid from '@material-ui/core/Grid/index'
 import { Layout, Menu, Button, Row, Table } from "antd";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const { Content, Sider } = Layout;
 
@@ -29,10 +30,63 @@ const data_prescription = [
     },
 ];
 
+let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
+
 class DrugstorePage extends Component {
-    // eslint-disable-next-line no-useless-constructor
     constructor(props){
         super(props);
+        this.state = {
+            data_prescription: [],
+        }
+        this.handlePrescribe = this.handlePrescribe.bind(this)
+    }
+
+    handlePrescribe(pid, mid) {
+        // stock decline in medicine table
+        axios.get(prescription_url + "?Prescription.medicineid=" + mid).then(res => {
+            let params = res.data['Medicine'][0]
+            params['stock'] -= 1
+            if (params['stock'] >= 0) {
+                axios.put(prescription_url + pid, params, {
+                    headers: {
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    }
+                })
+                // record prescribed in prescription table
+                axios.get(prescription_url + pid).then(res => {
+                    let presc_params = res.data
+                    presc_params['prescribed'] = 1
+                    axios.put(prescription_url + pid, presc_params, {
+                        headers: {
+                            'Content-Type': 'application/json;charset=UTF-8'
+                        }
+                    })
+                })
+            } else {
+                alert("This medicine has used up!")
+            }
+        })
+    }
+
+    componentWillMount() {
+        axios.get(prescription_url).then(res => {
+            console.log(res.data)
+            if (res.data != null && res.data.size > 0) {
+                let data = res.data['Prescription'].map((item, index) => {
+                    return {
+                        key: index,
+                        number: item['aid'],
+                        prescribestate: item['prescribed'] ? "prescribed" : "not prescribed",
+                        prescribebutton:
+                            <Button disabled={item['prescribed']}
+                                    onClick={() => this.handlePrescribe(item['id'], item['medicineid'])}>
+                                prescribe
+                            </Button>
+                    }
+                })
+            }
+        })
     }
 
     render() {
@@ -58,7 +112,7 @@ class DrugstorePage extends Component {
                                     <Grid item xs={8} >
                                         <br/><br/>
                                         <h1>Prescription Information</h1>
-                                        <Table columns={columns_prescription} dataSource={data_prescription} />
+                                        <Table columns={columns_prescription} dataSource={this.state.data_prescription} />
                                     </Grid>
                                     <Grid item xs={2} />
                                 </Grid>
