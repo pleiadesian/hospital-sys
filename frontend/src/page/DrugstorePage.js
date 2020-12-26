@@ -6,10 +6,29 @@ import axios from "axios";
 
 const { Content, Sider } = Layout;
 
+const columns_medicine = [
+    {
+        title: 'Name',
+        dataIndex: 'name',
+    },
+    {
+        title: "Stock",
+        dataIndex: "stock",
+    },
+    {
+        title: 'Price/$',
+        dataIndex: 'price',
+    },
+];
+
 const columns_prescription = [
     {
         title: 'Number',
         dataIndex: 'number',
+    },
+    {
+        title: 'Medicine Name',
+        dataIndex: 'medicinename',
     },
     {
         title: 'Prescribe state',
@@ -21,15 +40,6 @@ const columns_prescription = [
     },
 ];
 
-const data_prescription = [
-    {
-        key: '1',
-        number: '1',
-        prescribestate: 'not prescribed',
-        prescribebutton: <Button>prescribe</Button>,
-    },
-];
-
 let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
 let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
 
@@ -38,17 +48,59 @@ class DrugstorePage extends Component {
         super(props);
         this.state = {
             data_prescription: [],
+            data_medicine: [],
         }
         this.handlePrescribe = this.handlePrescribe.bind(this)
+        this.getInformation = this.getInformation.bind(this)
+    }
+
+    getInformation() {
+        let data_medicine = {}
+        let data_prescription = {}
+        axios.get(medicine_url).then(res => {
+            if (res.data != null && res.data['Medicine'] !== undefined) {
+                data_medicine = res.data['Medicine'].map((item, index) => {
+                    return {
+                        key: index,
+                        name: item['name'],
+                        stock: item['stock'],
+                        price: item['price'],
+                    }
+                })
+            }
+            axios.get(prescription_url).then(res => {
+                console.log(res.data)
+                if (res.data != null && res.data['Prescription'] !== undefined) {
+                    data_prescription = res.data['Prescription'].map((item, index) => {
+                        return {
+                            key: index,
+                            number: item['aid'],
+                            medicinename: item['medicinename'],
+                            prescribestate: item['prescribed'] ? "prescribed" : "not prescribed",
+                            prescribebutton:
+                                <Button disabled={item['prescribed']}
+                                        onClick={() => this.handlePrescribe(item['id'], item['medicineid'])}>
+                                    prescribe
+                                </Button>
+                        }
+                    })
+                    this.setState({
+                        data_medicine: data_medicine,
+                        data_prescription: data_prescription
+                    })
+                }
+            })
+        })
     }
 
     handlePrescribe(pid, mid) {
         // stock decline in medicine table
-        axios.get(prescription_url + "?Prescription.medicineid=" + mid).then(res => {
+        axios.get(medicine_url + "?Medicine.mid=" + mid).then(res => {
             let params = res.data['Medicine'][0]
+            console.log(params)
             params['stock'] -= 1
             if (params['stock'] >= 0) {
-                axios.put(prescription_url + pid, params, {
+                axios.put(medicine_url + params['id'], params, {
                     headers: {
                         'Content-Type': 'application/json;charset=UTF-8'
                     }
@@ -61,7 +113,7 @@ class DrugstorePage extends Component {
                         headers: {
                             'Content-Type': 'application/json;charset=UTF-8'
                         }
-                    })
+                    }).then(() => this.getInformation())
                 })
             } else {
                 alert("This medicine has used up!")
@@ -70,23 +122,7 @@ class DrugstorePage extends Component {
     }
 
     componentWillMount() {
-        axios.get(prescription_url).then(res => {
-            console.log(res.data)
-            if (res.data != null && res.data.size > 0) {
-                let data = res.data['Prescription'].map((item, index) => {
-                    return {
-                        key: index,
-                        number: item['aid'],
-                        prescribestate: item['prescribed'] ? "prescribed" : "not prescribed",
-                        prescribebutton:
-                            <Button disabled={item['prescribed']}
-                                    onClick={() => this.handlePrescribe(item['id'], item['medicineid'])}>
-                                prescribe
-                            </Button>
-                    }
-                })
-            }
-        })
+       this.getInformation()
     }
 
     render() {
@@ -99,7 +135,10 @@ class DrugstorePage extends Component {
                         </Menu.Item>
                         <Menu.Divider style={{margin:20}}/>
                         <Menu.Item key="2">
-                            <Row justify="center"><Link to={'/doctor'}><span>Prescription Info</span></Link></Row>
+                            <Row justify="center"><Link to={'/drugstore'}><span>Medicine Info</span></Link></Row>
+                        </Menu.Item>
+                        <Menu.Item key="3">
+                            <Row justify="center"><Link to={'/drugstore'}><span>Prescription Info</span></Link></Row>
                         </Menu.Item>
                     </Menu>
                 </Sider>
@@ -110,6 +149,9 @@ class DrugstorePage extends Component {
                                 <Grid container direction={"row"} >
                                     <Grid item xs={2} />
                                     <Grid item xs={8} >
+                                        <br/><br/>
+                                        <h1>Medicine Information</h1>
+                                        <Table columns={columns_medicine} dataSource={this.state.data_medicine} />
                                         <br/><br/>
                                         <h1>Prescription Information</h1>
                                         <Table columns={columns_prescription} dataSource={this.state.data_prescription} />

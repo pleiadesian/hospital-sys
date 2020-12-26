@@ -26,16 +26,6 @@ const columns_admission = [
     },
 ];
 
-const data_admission = [
-    {
-        key: '1',
-        number: '1',
-        name: 'John Brown',
-        admission: 'not checked',
-        check: <Button>check</Button>,
-    },
-];
-
 let pid = 0;
 let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Appointment/";
 let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
@@ -56,7 +46,7 @@ class DoctorPage extends Component {
 
     getAppointment() {
         axios.get(appointment_url).then(res => {
-                if (res.data != null && res.data.size > 0) {
+                if (res.data != null && res.data['Appointment'] !== undefined) {
                     let data = res.data['Appointment'].map((item, index) => {
                         return {
                             key: index,

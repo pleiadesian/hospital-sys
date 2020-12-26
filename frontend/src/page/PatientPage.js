@@ -27,8 +27,8 @@ const columns_prescription = [
         dataIndex: 'number',
     },
     {
-        title: 'Medicine Receipt',
-        dataIndex: 'receipt',
+        title: 'Medicine Name',
+        dataIndex: 'medicinename',
     },
     {
         title: 'Payment',
@@ -40,13 +40,14 @@ const data_prescription = [
     {
         key: '1',
         number: '1',
-        receipt: <Button>receipt</Button>,
+        medicinename: "temp",
         payment: <Button>payment</Button>,
     },
 ];
 
 let aid = 0;
 let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Appointment/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
 
 class PatientPage extends Component {
     constructor(props){
@@ -55,20 +56,32 @@ class PatientPage extends Component {
         this.state = {
             visible: false,
             data_register: [],
-            data_prescription: {},
+            data_prescription: [],
         }
         this.handleRegister = this.handleRegister.bind(this)
         this.showModal = this.showModal.bind(this)
-        this.handleOk = this.handleOk.bind(this)
-        this.handleCancel = this.handleCancel.bind(this)
-        this.getAppointment = this.getAppointment.bind(this)
+        this.getInformation = this.getInformation.bind(this)
     }
 
-    getAppointment() {
+    handlePayment(id) {
+        this.showModal()
+        axios.get(prescription_url + id).then(res => {
+            let data = res.data
+            data['payed'] = 1
+            axios.put(prescription_url + id, data, {
+                headers: {
+                    'Content-Type': 'application/json;charset=UTF-8'
+                }
+            }).then(() => this.getInformation())
+        })
+    }
+
+    getInformation() {
         axios.get(appointment_url).then(res => {
-                if (res.data != null && res.data.size > 0) {
-                    console.log(res.data['Appointment'])
-                    let data = res.data['Appointment'].map((item, index) => {
+                let data_appointment = {}
+                let data_prescription = {}
+                if (res.data != null && res.data['Appointment'] !== undefined) {
+                    data_appointment = res.data['Appointment'].map((item, index) => {
                         return {
                             key: index,
                             number: item['id'],
@@ -79,14 +92,28 @@ class PatientPage extends Component {
                             </Button>,
                         };
                     })
-                    console.log(data)
-                    this.setState({data_register: data})
+                    axios.get(prescription_url).then(res => {
+                        if (res.data != null && res.data['Prescription'] !== undefined) {
+                            data_prescription = res.data['Prescription'].map((item, index) => {
+                                return {
+                                    key: index,
+                                    number: item['aid'],
+                                    medicinename: item['medicinename'],
+                                    payment:
+                                        <Button disabled={item['payed']} onClick={() => this.handlePayment(item['id'])}>
+                                            pay
+                                        </Button>
+                                }
+                            })
+                        }
+                        this.setState({data_register: data_appointment, data_prescription: data_prescription})
+                    })
                 }
             })
     }
 
     componentWillMount() {
-        this.getAppointment()
+        this.getInformation()
     }
 
     handleRegister() {
@@ -99,23 +126,13 @@ class PatientPage extends Component {
         }
         aid += 1
         axios.post(appointment_url, params)
-        this.getAppointment()
-    }
-
-    handleOk()
-    {
-        this.setState({visible:false})
-    }
-
-    handleCancel()
-    {
-        this.setState({visible:false})
+        this.getInformation()
     }
 
     showModal(text) {
         Modal.info({
-            title: 'Information',
-            content: text,
+            title: 'Confirmation',
+            content: "Confirm your payment",
             onOk() {},
         })
     }
@@ -148,15 +165,12 @@ class PatientPage extends Component {
                             <Grid container direction={"row"} >
                                 <Grid item xs={2} />
                                 <Grid item xs={8} >
-                                    {/*<Modal title="Information" visible={this.state.visible}*/}
-                                    {/*       onOk={this.handleOk} onCancel={this.handleCancel}*/}
-                                    {/*/>*/}
                                     <br/><br/>
                                     <h1>Register Information</h1>
                                     <Table columns={columns_register} dataSource={this.state.data_register} />
                                     <br/><br/>
                                     <h1>Prescription Information</h1>
-                                    <Table columns={columns_prescription} dataSource={data_prescription} />
+                                    <Table columns={columns_prescription} dataSource={this.state.data_prescription} />
                                 </Grid>
                                 <Grid item xs={2} />
                             </Grid>

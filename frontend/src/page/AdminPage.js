@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
 import Grid from '@material-ui/core/Grid/index'
-import { Layout, List, Menu, Button, Row, Table } from "antd";
+import {Layout, List, Menu, Button, Row, Table, Modal, Select} from "antd";
 import { Link } from "react-router-dom";
+import axios from "axios";
+import Search from "antd/es/input/Search";
 
 const { Content, Sider } = Layout;
+const { Option } = Select;
 
 const columns_medicine = [
     {
@@ -96,10 +99,172 @@ const data_prescription = [
     }
 ]
 
+let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
+let schedule_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Schedule/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
+
 class DoctorPage extends Component {
-    // eslint-disable-next-line no-useless-constructor
-    constructor(props){
+    constructor(props) {
         super(props);
+        this.state = {
+            data_medicine: [],
+            data_docter: [],
+            data_prescription: [],
+        }
+        this.handleStockChange = this.handleStockChange.bind(this)
+        this.handlePriceChange = this.handlePriceChange.bind(this)
+        this.handleScheduleChange = this.handleScheduleChange.bind(this)
+        this.showMedicineModal = this.showMedicineModal.bind(this)
+        this.showDoctorModal = this.showDoctorModal.bind(this)
+        this.getInformation = this.getInformation.bind(this)
+    }
+
+    getInformation() {
+        let data_medicine = {}
+        let data_docter = {}
+        let data_prescription = {}
+        axios.get(medicine_url).then(res => {
+            data_medicine = res.data['Medicine'].map((item, index) => {
+                return {
+                    key: index,
+                    name: item['name'],
+                    stock: item['stock'],
+                    price: item['price'],
+                    update:
+                        <Button onClick={() => this.showMedicineModal(item['id'])}>
+                            update
+                        </Button>
+                }
+            })
+            axios.get(schedule_url).then(res => {
+                if (res.data != null && res.data['Schedule'] !== undefined) {
+                    data_doctor = res.data['Schedule'].map((item, index) => {
+                        return {
+                            key: index,
+                            name: item['doctorname'],
+                            attendance: item['day'],
+                            update: 
+                                <Button onClick={() => this.showDoctorModal(item['id'])}>
+                                    update
+                                </Button>
+                        }
+                    })
+                }
+                axios.get(prescription_url).then(res => {
+                    if (res.data != null && res.data['Prescription'] !== undefined) {
+                        data_prescription = res.data['Prescription'].map((item, index) => {
+                            return {
+                                key: index,
+                                export: 
+                                    <Button onClick={() => this.showPrescriptionModal(item)}>
+                                        export
+                                    </Button>
+                            }
+                        })
+                    }
+                })
+            })
+        })
+    }
+
+    componentWillMount() {
+        this.getInformation()
+    }
+
+    handleStockChange(id, value) {
+        if (!(parseInt(value) > 0))
+            alert("Wrong stock format!")
+        else
+            axios.get(medicine_url + id).then(res => {
+                let params = res.data
+                params['stock'] = parseInt(value)
+                axios.put(medicine_url + id, params, {
+                    headers: {
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    }
+                }).then(() => this.getInformation())
+            })
+    }
+
+    handlePriceChange(id, value) {
+        if (!(parseFloat(value) > 0.0))
+            alert("Wrong price format!")
+        else
+            axios.get(medicine_url + id).then(res => {
+                let params = res.data
+                params['price'] = parseFloat(value)
+                axios.put(medicine_url + id, params, {
+                    headers: {
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    }
+                }).then(() => this.getInformation())
+            })
+    }
+
+    showPrescriptionModal(item) {
+        Modal.info({
+            title: 'Prescription Info',
+            content:
+            <>
+                <p>number:{item['aid']}</p>
+                <p>patientID:{item['patientid']}</p>
+                <p>medicine:{item['medicinename']}</p>
+                <p>payed:{item['payed'] ? "true" : "false"}</p>
+                <p>prescribed:{item['prescribed'] ? "true" : "false"}</p>
+            </>
+        })
+    }
+
+    showMedicineModal(id) {
+        Modal.info({
+            title: 'Update Medicine Info',
+            content:
+                <>
+                    <span>stock:</span>
+                    <Search
+                        placeholder="input stock"
+                        enterButton="Update"
+                        onSearch={(value) => this.handleStockChange(id, value)}
+                    />
+                    <span>price:</span>
+                    <Search
+                        placeholder="input price"
+                        enterButton="Update"
+                        onSearch={(value) => this.handlePriceChange(id, value)}
+                    />
+                </>,
+            onOk() {}
+        })
+    }
+
+    handleScheduleChange(id, value) {
+        axios.get(schedule_url + id).then(res => {
+            let params = res.data
+            params['day'] = value.join(',')
+            axios.put(schedule_url + id, params, {
+                headers: {
+                    'Content-Type': 'application/json;charset=UTF-8'
+                }
+            }).then(() => this.getInformation())
+        })
+    }
+
+    showDoctorModal(id) {
+        Modal.info({
+            title: 'Update Schedule Info',
+            content:
+                <Select
+                    mode="tags"
+                    onChange={(value) => this.handleScheduleChange(id, value)}
+                    style={{ width: '100%' }}
+                >
+                    <Option key="Monday">Monday</Option>
+                    <Option key="Tuesday">Tuesday</Option>
+                    <Option key="Wednesday">Wednesday</Option>
+                    <Option key="Thursday">Thursday</Option>
+                    <Option key="Friday">Friday</Option>
+                </Select>
+        })
     }
 
     render() {
@@ -134,16 +299,16 @@ class DoctorPage extends Component {
                                     <Grid item xs={8} >
                                         <br/><br/>
                                         <h1>Medicine Information</h1>
-                                        <Table columns={columns_medicine} dataSource={data_medicine} />
+                                        <Table columns={columns_medicine} dataSource={this.state.data_medicine} />
                                         <br/><br/>
                                         <h1>Department Information</h1>
                                         <Table columns={columns_department} dataSource={data_department} />
                                         <br/><br/>
                                         <h1>Doctor Information</h1>
-                                        <Table columns={columns_doctor} dataSource={data_doctor} />
+                                        <Table columns={columns_doctor} dataSource={this.state.data_doctor} />
                                         <br/><br/>
                                         <h1>Prescription Information</h1>
-                                        <Table columns={columns_prescription} dataSource={data_prescription} />
+                                        <Table columns={columns_prescription} dataSource={this.state.data_prescription} />
                                     </Grid>
                                     <Grid item xs={2} />
                                 </Grid>
