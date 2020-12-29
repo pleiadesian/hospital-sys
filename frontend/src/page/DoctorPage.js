@@ -27,9 +27,9 @@ const columns_admission = [
 ];
 
 let pid = 0;
-let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Appointment/";
-let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
-let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
+let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Appointment/";
+let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Medicine/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Prescription/";
 
 class DoctorPage extends Component {
     constructor(props){
@@ -50,11 +50,11 @@ class DoctorPage extends Component {
                     let data = res.data['Appointment'].map((item, index) => {
                         return {
                             key: index,
-                            number: item['id'],
+                            number: item['aid'],
                             name: item['patientname'],
                             admission: item['completion'] ? 'checked' : 'not checked',
                             check:
-                                <Button disabled={item['completion']} onClick={() => this.showModal(item['id'])}>
+                                <Button disabled={item['completion']} onClick={() => this.showModal(item['aid'])}>
                                     checklist
                                 </Button>,
                         };
@@ -69,11 +69,11 @@ class DoctorPage extends Component {
     }
 
     handleCheckTextChange(id, event) {
-        axios.get(appointment_url + id)
+        axios.get(appointment_url + "?Appointment.aid=" + id)
             .then(res => {
-                let params = res.data
+                let params = res.data['Appointment'][0]
                 params['content'] = event.target.value
-                axios.put(appointment_url + id, params, {
+                axios.put(appointment_url + params['id'], params, {
                     headers: {
                         'Content-Type': 'application/json;charset=UTF-8'
                     },
@@ -86,15 +86,15 @@ class DoctorPage extends Component {
         let mid = value
         axios.get(medicine_url + "?Medicine.mid=" + mid)
             .then(res => {
-                params['medicinename'] = res.data['Medicine'][0]['name']
-                params['medicineprice'] = res.data['Medicine'][0]['price']
+                params['mname'] = res.data['Medicine'][0]['name']
+                params['mprice'] = res.data['Medicine'][0]['price']
                 axios.get(prescription_url + "?Prescription.aid=" + id)
                     .then(res => {
                         let put_params = res.data['Prescription'][0]
                         console.log(put_params)
-                        put_params['medicineid'] = parseInt(mid)
-                        put_params['medicinename'] = params['medicinename']
-                        put_params['medicineprice'] = params['medicineprice']
+                        put_params['mid'] = parseInt(mid)
+                        put_params['mname'] = params['mname']
+                        put_params['mprice'] = params['mprice']
                         axios.put(prescription_url + put_params['id'], put_params, {
                             headers: {
                                 'Content-Type': 'application/json;charset=UTF-8'
@@ -106,11 +106,11 @@ class DoctorPage extends Component {
 
     handleModalOk(id) {
         // finish checking and prescribing
-        axios.get(appointment_url + id)
+        axios.get(appointment_url + "?Appointment.aid=" + id)
             .then(res => {
-                let params = res.data
+                let params = res.data['Appointment'][0]
                 params['completion'] = 1
-                axios.put(appointment_url + id, params, {headers: {'Content-Type': 'application/json;charset=UTF-8'},})
+                axios.put(appointment_url + params['id'], params, {headers: {'Content-Type': 'application/json;charset=UTF-8'},})
                     .then(() => {this.getAppointment()})
             })
     }
@@ -118,20 +118,20 @@ class DoctorPage extends Component {
     showModal(id) {
         // create a new prescription for this admission id
         let params = {
-            "pid": pid,
+            // "pid": pid,
             "aid": id,
-            "patientid": 1,
-            "medicineid": 0,
+            // "patientid": 1,
+            "mid": 0,
             "payed": 0,
             "prescribed": 0,
         }
         pid += 1
-        axios.get(medicine_url + "?Medicine.mid=" + params['medicineid'])
+        axios.get(medicine_url + "?Medicine.mid=" + params['mid'])
             .then(res => {
                 console.log(res.data)
                 console.log(res.data['Medicine'][0])
-                params['medicinename'] = res.data['Medicine'][0]['name']
-                params['medicineprice'] = res.data['Medicine'][0]['price']
+                params['mname'] = res.data['Medicine'][0]['name']
+                params['mprice'] = res.data['Medicine'][0]['price']
                 console.log(params)
                 axios.post(prescription_url, params).then(() => {
                     // show modal and wait for doctor checking and prescribing

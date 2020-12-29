@@ -40,8 +40,8 @@ const columns_prescription = [
     },
 ];
 
-let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
-let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
+let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Medicine/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Prescription/";
 
 class DrugstorePage extends Component {
     constructor(props){
@@ -55,8 +55,8 @@ class DrugstorePage extends Component {
     }
 
     getInformation() {
-        let data_medicine = {}
-        let data_prescription = {}
+        let data_medicine = []
+        let data_prescription = []
         axios.get(medicine_url).then(res => {
             if (res.data != null && res.data['Medicine'] !== undefined) {
                 data_medicine = res.data['Medicine'].map((item, index) => {
@@ -75,11 +75,11 @@ class DrugstorePage extends Component {
                         return {
                             key: index,
                             number: item['aid'],
-                            medicinename: item['medicinename'],
+                            medicinename: item['mname'],
                             prescribestate: item['prescribed'] ? "prescribed" : "not prescribed",
                             prescribebutton:
                                 <Button disabled={item['prescribed']}
-                                        onClick={() => this.handlePrescribe(item['id'], item['medicineid'])}>
+                                        onClick={() => this.handlePrescribe(item['id'], item['mid'])}>
                                     prescribe
                                 </Button>
                         }

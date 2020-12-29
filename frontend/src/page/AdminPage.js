@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import Grid from '@material-ui/core/Grid/index'
-import {Layout, List, Menu, Button, Row, Table, Modal, Select} from "antd";
+import {Layout, List, Menu, Button, Row, Table, Modal, Select, Input} from "antd";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Search from "antd/es/input/Search";
@@ -27,16 +27,6 @@ const columns_medicine = [
     },
 ];
 
-const data_medicine = [
-    {
-        key: '1',
-        name: 'aspirin',
-        stock: '12',
-        price: '9.60',
-        update: <Button>update</Button>,
-    },
-];
-
 const columns_department = [
     {
         title: 'Name',
@@ -53,6 +43,16 @@ const data_department = [
         key: '1',
         name: 'Surgical',
         number: '3',
+    },
+    {
+        key: '2',
+        name: 'Stomatology',
+        number: '5',
+    },
+    {
+        key: '3',
+        name: 'Dermatology',
+        number: '2'
     }
 ]
 
@@ -71,15 +71,6 @@ const columns_doctor = [
     },
 ]
 
-const data_doctor = [
-    {
-        key: '1',
-        name: 'Jim Green',
-        attendance: 'Monday,Wednesday',
-        update: <Button>Update</Button>,
-    }
-]
-
 const columns_prescription = [
     {
         title: 'Number',
@@ -91,25 +82,39 @@ const columns_prescription = [
     },
 ]
 
-const data_prescription = [
+const columns_schedule = [
     {
-        key: '1',
-        number: '1',
-        export: <Button>Export</Button>,
-    }
+        title: 'Doctor',
+        dataIndex: 'doctor',
+    },
+    {
+        title: 'Pending Queue',
+        dataIndex: 'pending',
+    },
+    {
+        title: 'Completed Queue',
+        dataIndex: 'completed',
+    },
+    {
+        title: 'Estimated Time',
+        dataIndex: 'estimate',
+    },
 ]
 
-let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Medicine/";
-let schedule_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Schedule/";
-let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
+let medicine_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Medicine/";
+let schedule_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Schedule/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Prescription/";
+let core_schedule_url = "http://127.0.0.1:3002/register/";
 
 class DoctorPage extends Component {
     constructor(props) {
         super(props);
         this.state = {
             data_medicine: [],
-            data_docter: [],
+            data_doctor: [],
             data_prescription: [],
+            data_schedule: [],
+            patientid: 0,
         }
         this.handleStockChange = this.handleStockChange.bind(this)
         this.handlePriceChange = this.handlePriceChange.bind(this)
@@ -117,12 +122,15 @@ class DoctorPage extends Component {
         this.showMedicineModal = this.showMedicineModal.bind(this)
         this.showDoctorModal = this.showDoctorModal.bind(this)
         this.getInformation = this.getInformation.bind(this)
+        this.handlePidChange = this.handlePidChange.bind(this)
+        this.handleNewRegister = this.handleNewRegister.bind(this)
+        this.handleCheckStart = this.handleCheckStart.bind(this)
     }
 
     getInformation() {
-        let data_medicine = {}
-        let data_docter = {}
-        let data_prescription = {}
+        let data_medicine = []
+        let data_doctor = []
+        let data_prescription = []
         axios.get(medicine_url).then(res => {
             data_medicine = res.data['Medicine'].map((item, index) => {
                 return {
@@ -155,6 +163,7 @@ class DoctorPage extends Component {
                         data_prescription = res.data['Prescription'].map((item, index) => {
                             return {
                                 key: index,
+                                number: item['aid'],
                                 export: 
                                     <Button onClick={() => this.showPrescriptionModal(item)}>
                                         export
@@ -162,8 +171,27 @@ class DoctorPage extends Component {
                             }
                         })
                     }
+                    this.setState({
+                        data_medicine: data_medicine,
+                        data_doctor: data_doctor,
+                        data_prescription: data_prescription,
+                    })
                 })
             })
+        })
+        axios.get(core_schedule_url + 'doctors').then(res => {
+            let data_schedule = res.data.map((item, index) => {
+                let item_json = JSON.parse(item)
+                console.log(item_json['pending_queue'])
+                return {
+                    key: index,
+                    doctor: item_json['name'],
+                    pending: item_json['pending_queue'].join(','),
+                    completed: item_json['complete_queue'].join(','),
+                    estimate: item_json['estimateTime'],
+                }
+            })
+            this.setState({data_schedule: data_schedule})
         })
     }
 
@@ -207,8 +235,8 @@ class DoctorPage extends Component {
             content:
             <>
                 <p>number:{item['aid']}</p>
-                <p>patientID:{item['patientid']}</p>
-                <p>medicine:{item['medicinename']}</p>
+                <p>registerID:{item['aid']}</p>
+                <p>medicine:{item['mname']}</p>
                 <p>payed:{item['payed'] ? "true" : "false"}</p>
                 <p>prescribed:{item['prescribed'] ? "true" : "false"}</p>
             </>
@@ -267,6 +295,34 @@ class DoctorPage extends Component {
         })
     }
 
+    handlePidChange(event) {
+        this.setState({patientid: parseInt(event.target.value)})
+    }
+
+    handleNewRegister() {
+        axios.get(core_schedule_url + 'require?pid=' + this.state.patientid).then(res => {
+            Modal.info({
+                title: "Register Info",
+                content:
+                    <>
+                        <span>Doctor selected: {res.data['name']}</span>
+                        <br/>
+                        <span>Estimate time to wait: {res.data['estimate']}</span>
+                    </>,
+                onOk() {},
+            })
+            this.getInformation()
+        })
+    }
+
+    handleCheckStart() {
+        axios.get(core_schedule_url + 'start?pid=' + this.state.patientid).then(() => {
+            axios.get(core_schedule_url + 'over?pid=' + this.state.patientid).then(() => {
+                this.getInformation()
+            })
+        })
+    }
+
     render() {
         return (
             <Layout style={{minHeight: '100vh'}}>
@@ -309,6 +365,13 @@ class DoctorPage extends Component {
                                         <br/><br/>
                                         <h1>Prescription Information</h1>
                                         <Table columns={columns_prescription} dataSource={this.state.data_prescription} />
+                                        <br/><br/>
+                                        <h1>Schedule Information</h1>
+                                        <Table columns={columns_schedule} dataSource={this.state.data_schedule} />
+                                        <h3>Patient ID</h3>
+                                        <Input style={{ width: '20%' }} onChange={(event) => this.handlePidChange(event)}/>
+                                        <Button onClick={this.handleNewRegister}>New Register</Button>
+                                        <Button onClick={this.handleCheckStart}>Check Start</Button>
                                     </Grid>
                                     <Grid item xs={2} />
                                 </Grid>

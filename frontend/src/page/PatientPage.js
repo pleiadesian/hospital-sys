@@ -36,35 +36,28 @@ const columns_prescription = [
     },
 ];
 
-const data_prescription = [
-    {
-        key: '1',
-        number: '1',
-        medicinename: "temp",
-        payment: <Button>payment</Button>,
-    },
-];
-
-let aid = 0;
-let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Appointment/";
-let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hospitalx/Prescription/";
+let appointment_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Appointment/";
+let prescription_url = "http://202.120.40.8:30611/Entity/Udbdc8b322a1243/hosp/Prescription/";
 
 class PatientPage extends Component {
     constructor(props){
         super(props);
-        // TODO: register info and prescription info state
         this.state = {
             visible: false,
             data_register: [],
             data_prescription: [],
         }
         this.handleRegister = this.handleRegister.bind(this)
-        this.showModal = this.showModal.bind(this)
         this.getInformation = this.getInformation.bind(this)
+        this.showChecklistModal = this.showChecklistModal.bind(this)
     }
 
     handlePayment(id) {
-        this.showModal()
+        Modal.info({
+            title: 'Confirmation',
+            content: "Confirm your payment",
+            onOk() {},
+        })
         axios.get(prescription_url + id).then(res => {
             let data = res.data
             data['payed'] = 1
@@ -76,18 +69,26 @@ class PatientPage extends Component {
         })
     }
 
+    showChecklistModal(content) {
+        Modal.info({
+            title: 'Check Result',
+            content: content,
+            onOk() {},
+        })
+    }
+
     getInformation() {
         axios.get(appointment_url).then(res => {
-                let data_appointment = {}
-                let data_prescription = {}
+                let data_appointment = []
+                let data_prescription = []
                 if (res.data != null && res.data['Appointment'] !== undefined) {
                     data_appointment = res.data['Appointment'].map((item, index) => {
                         return {
                             key: index,
-                            number: item['id'],
+                            number: item['aid'],
                             admission: item['completion'] ? 'Checked' : 'Not checked',
                             checklist: <Button disabled={!item['completion']}
-                                               onClick={() => this.showModal(item['content'])}>
+                                               onClick={() => this.showChecklistModal(item['content'])}>
                                 checklist
                             </Button>,
                         };
@@ -98,10 +99,10 @@ class PatientPage extends Component {
                                 return {
                                     key: index,
                                     number: item['aid'],
-                                    medicinename: item['medicinename'],
+                                    medicinename: item['mname'],
                                     payment:
-                                        <Button disabled={item['payed']} onClick={() => this.handlePayment(item['id'])}>
-                                            pay
+                                        <Button disabled={item['payed'] || !item['prescribed']} onClick={() => this.handlePayment(item['id'])}>
+                                            {item['payed'] ? "payed" : (item['prescribed'] ? "pay" : "not prescribed")}
                                         </Button>
                                 }
                             })
@@ -117,23 +118,27 @@ class PatientPage extends Component {
     }
 
     handleRegister() {
-        let params = {
-            "aid" : aid,
-            "patientid": 1,
-            "patientname": "Ray Williams",
-            "completion": 0,
-            "content": "",
-        }
-        aid += 1
-        axios.post(appointment_url, params)
-        this.getInformation()
-    }
+        // TODO: calc aid
 
-    showModal(text) {
-        Modal.info({
-            title: 'Confirmation',
-            content: "Confirm your payment",
-            onOk() {},
+        axios.get(appointment_url).then(res => {
+            let aid = 0
+            if (res.data != null && res.data['Appointment'] !== undefined) {
+                res.data['Appointment'].map((item) => {
+                    if (item['aid'] >= aid) {
+                        aid = item['aid'] + 1
+                    }
+                })
+            }
+            let params = {
+                "aid" : aid,
+                "patientid": 1,
+                "patientname": "Ray Williams",
+                "completion": 0,
+                "content": "",
+            }
+
+            axios.post(appointment_url, params).then(() => this.getInformation())
+
         })
     }
 
